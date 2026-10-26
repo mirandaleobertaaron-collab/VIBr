@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="An interactive presentation of the VIBr theoretical microplastic-capture trajectory model.">
+  <title>VIBr — Microplastic Capture Model</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #14243b;
+      --body: #46556b;
+      --muted: #718096;
+      --line: #dce4ec;
+      --grid: #e9eef3;
+      --blue: #2468c7;
+      --teal: #16877d;
+      --amber: #c97918;
+      --flow: #9aa8b8;
+      --water: #eef6fc;
+      --surface: #fff;
+      --wash: #f7f9fb;
+      --focus: #2468c7;
+      --radius: 12px;
+      --content: 1160px;
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: var(--surface); color: var(--ink); }
+    a { color: inherit; }
+    button { font: inherit; }
+    .topbar {
+      height: 72px; border-bottom: 1px solid var(--line); display: flex;
+      align-items: center; justify-content: space-between; padding: 0 36px;
+      background: rgba(255,255,255,.96); position: sticky; top: 0; z-index: 10;
+    }
+    .brand { font-size: 24px; line-height: 1; font-weight: 700; letter-spacing: -.05em; text-decoration: none; }
+    .nav { display: flex; align-items: center; gap: 32px; height: 100%; }
+    .nav a { color: var(--body); text-decoration: none; font-size: 14px; height: 100%; display: inline-flex; align-items: center; position: relative; }
+    .nav a:hover, .nav a[aria-current="page"] { color: var(--blue); }
+    .nav a[aria-current="page"]::after { content: ""; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: var(--blue); }
+    main { width: min(var(--content), calc(100% - 64px)); margin: 0 auto; }
+    .intro { padding: 54px 0 30px; }
+    h1 { font-size: clamp(34px, 4.3vw, 52px); line-height: 1.05; letter-spacing: -.045em; margin: 0; font-weight: 650; }
+    .intro p { max-width: 760px; margin: 16px 0 0; font-size: 18px; line-height: 1.55; color: var(--body); }
+    .model-note { margin-top: 15px; font-size: 13px; color: #536278; }
+    .model-note strong { color: var(--ink); font-weight: 600; }
+    .sim-section { border-top: 1px solid var(--line); padding-top: 24px; }
+    .section-head { display:flex; justify-content:space-between; gap:24px; align-items:end; margin-bottom: 14px; }
+    h2 { margin:0; font-size: 22px; letter-spacing:-.025em; font-weight:600; }
+    .schematic-note { font-size: 12px; color: var(--muted); }
+    .diagram-wrap { width: 100%; overflow: hidden; }
+    #chamber { display:block; width:100%; height:auto; }
+    #chamber text { font-family: inherit; fill: var(--body); font-size: 13px; }
+    #chamber .label { fill: var(--ink); font-weight: 550; }
+    #chamber .small { fill: var(--muted); font-size: 11px; }
+    #chamber .collector { stroke: #64748b; stroke-width: 5; }
+    #chamber .collector-edge { stroke: #d1dae4; stroke-width: 1; }
+    #chamber .flow-arrow { stroke: #3987d6; stroke-width: 2; fill: none; }
+    #chamber .flow-dash { stroke: #91c0ea; stroke-width: 1.5; stroke-dasharray: 5 7; fill: none; }
+    #chamber .transducer { fill: #e5ebf1; stroke: #9aa8b8; stroke-width: 1.5; }
+    #chamber .wave { stroke: #7399be; stroke-width: 1.5; fill: none; opacity: .8; }
+    .control-row { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); display:flex; align-items:center; justify-content:space-between; gap:20px; padding:17px 0; margin-top:5px; }
+    .parameters { display:flex; flex-wrap:wrap; gap: clamp(18px, 4vw, 56px); }
+    .param { min-width: 116px; }
+    .param dt { font-size: 12px; color: var(--muted); margin-bottom:5px; }
+    .param dd { margin:0; font-size: 16px; font-weight:550; color:var(--ink); }
+    .buttons { display:flex; gap:9px; flex-shrink:0; }
+    .button { border:1px solid #cbd7e3; background:#fff; color:var(--ink); border-radius:8px; padding:10px 15px; font-size:14px; font-weight:550; cursor:pointer; min-height:42px; transition:background .15s ease,border-color .15s ease,transform .15s ease; }
+    .button:hover { background:#f4f8fc; border-color:#94a9bf; }
+    .button:active { transform:translateY(1px); }
+    .button:focus-visible, a:focus-visible { outline:3px solid rgba(36,104,199,.28); outline-offset:3px; }
+    .button.primary { background:var(--blue); border-color:var(--blue); color:#fff; min-width:154px; }
+    .button.primary:hover { background:#1d58aa; }
+    .progress-row { display:flex; gap:14px; align-items:center; margin-top:16px; color:var(--muted); font-size:13px; }
+    .progress-track { height:4px; flex:1; background:#e8edf2; border-radius:9px; overflow:hidden; }
+    .progress-fill { height:100%; width:0; background:var(--blue); border-radius:9px; transition:width .1s linear; }
+    .results { font-variant-numeric:tabular-nums; color:var(--body); min-width:105px; text-align:right; }
+    .chart-section { padding:48px 0 56px; }
+    .chart-header { display:flex; align-items:end; justify-content:space-between; gap:16px; margin-bottom:14px; }
+    .chart-subtitle { color:var(--muted); font-size:13px; margin:7px 0 0; }
+    #capture-chart { display:block; width:100%; height:auto; overflow:visible; }
+    #capture-chart text { font-family:inherit; fill:var(--body); font-size:12px; }
+    #capture-chart .grid { stroke:var(--grid); stroke-width:1; }
+    #capture-chart .axis { stroke:#8090a3; stroke-width:1.2; }
+    #capture-chart .axis-title { fill:var(--body); font-size:13px; }
+    #capture-chart .curve { fill:none; stroke-width:3; stroke-linejoin:round; stroke-linecap:round; }
+    #capture-chart .cursor-line { stroke:#a7b4c1; stroke-width:1; stroke-dasharray:4 5; }
+    #capture-chart .cursor-dot { stroke:#fff; stroke-width:2; }
+    .legend { display:flex; flex-wrap:wrap; gap:18px; align-items:center; margin:12px 0 0 62px; color:var(--body); font-size:13px; }
+    .legend-item { display:inline-flex; align-items:center; gap:7px; }
+    .swatch { width:18px; height:3px; display:inline-block; background:var(--series); }
+    .swatch.dashed { background:repeating-linear-gradient(90deg,var(--series) 0 6px,transparent 6px 10px); }
+    .method { border-top:1px solid var(--line); padding:42px 0 60px; display:grid; grid-template-columns: .8fr 1.2fr; gap:52px; }
+    .method h2 { font-size:20px; }
+    .method p { color:var(--body); font-size:14px; line-height:1.7; margin:0; }
+    .method-copy { display:grid; gap:14px; }
+    .source-links { display:flex; flex-wrap:wrap; gap:14px; margin-top:3px; }
+    .source-links a { color:var(--blue); font-size:13px; text-decoration:underline; text-underline-offset:3px; }
+    footer { border-top:1px solid var(--line); padding:20px 32px; color:var(--muted); font-size:12px; text-align:center; }
+    @media (max-width: 760px) {
+      .topbar { height:62px; padding:0 20px; }
+      .nav { gap:18px; }
+      .nav a { font-size:13px; }
+      main { width:calc(100% - 36px); }
+      .intro { padding:38px 0 26px; }
+      .intro p { font-size:16px; }
+      .section-head { align-items:start; flex-direction:column; gap:7px; }
+      .control-row { align-items:flex-start; flex-direction:column; }
+      .parameters { gap:16px 26px; }
+      .buttons { width:100%; }
+      .button.primary { flex:1; }
+      .progress-row { flex-wrap:wrap; }
+      .progress-track { order:3; flex-basis:100%; }
+      .results { margin-left:auto; }
+      .chart-section { padding:36px 0 42px; }
+      .legend { margin-left:44px; gap:11px; font-size:12px; }
+      .method { grid-template-columns:1fr; gap:15px; padding:32px 0 42px; }
+      #chamber text { font-size:11px; }
+      #chamber .small { font-size:9px; }
+    }
+    @media (max-width: 430px) {
+      .topbar { padding:0 16px; }
+      .brand { font-size:22px; }
+      .nav { gap:13px; }
+      .nav a { font-size:12px; }
+      main { width:calc(100% - 28px); }
+      h1 { font-size:34px; }
+      .param { min-width:96px; }
+      .schematic-note { max-width:130px; text-align:right; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior:auto !important; transition:none !important; animation:none !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#overview" aria-label="VIBr home">VIBr</a>
+    <nav class="nav" aria-label="Main navigation">
+      <a href="#overview" aria-current="page">Overview</a>
+      <a href="#simulation">Simulation</a>
+      <a href="#method">Method</a>
+    </nav>
+  </header>
+  <main>
+    <section class="intro" id="overview" aria-labelledby="page-title">
+      <h1 id="page-title">VIBr Microplastic Capture Model</h1>
+      <p>Theoretical particle trajectories through a proposed acoustic chamber.</p>
+    </section>
+
+    <section class="sim-section" id="simulation" aria-labelledby="simulation-title">
+      <div class="section-head">
+        <h2 id="simulation-title">Particle movement through the chamber</h2>
+        <span class="schematic-note">Schematic view · not to scale</span>
+      </div>
+      <div class="diagram-wrap">
+        <svg id="chamber" viewBox="0 0 1000 300" role="img" aria-labelledby="chamber-title chamber-desc">
+          <title id="chamber-title">Animated VIBr chamber simulation</title>
+          <desc id="chamber-desc">Water flows from left to right while modeled PP, PS, and PET particles move vertically toward assumed upper and lower collector surfaces.</desc>
+          <defs>
+            <clipPath id="fluid-clip"><rect x="92" y="52" width="816" height="158" rx="2"/></clipPath>
+            <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#3987d6"/></marker>
+          </defs>
+          <path d="M32 85 H90 L120 52 H910 L940 85 H968 V178 H940 L910 210 H120 L90 178 H32 Z" fill="var(--water)" stroke="#b7c9d9" stroke-width="1.5"/>
+          <line x1="120" y1="52" x2="910" y2="52" class="collector"/>
+          <line x1="120" y1="210" x2="910" y2="210" class="collector"/>
+          <line x1="120" y1="57" x2="910" y2="57" class="collector-edge"/>
+          <line x1="120" y1="205" x2="910" y2="205" class="collector-edge"/>
+          <text x="515" y="33" text-anchor="middle" class="label">Upper collector surface · assumed pressure node</text>
+          <text x="515" y="238" text-anchor="middle" class="label">Lower collector surface · assumed pressure node</text>
+          <text x="33" y="114" class="label">Water flow</text>
+          <path d="M38 126 H102 M38 145 H102 M38 164 H102" class="flow-arrow" marker-end="url(#arrowhead)"/>
+          <path d="M907 126 H968 M907 145 H968 M907 164 H968" class="flow-arrow" marker-end="url(#arrowhead)"/>
+          <path d="M156 102 H872 M156 158 H872" class="flow-dash" marker-end="url(#arrowhead)"/>
+          <text x="515" y="279" text-anchor="middle" class="small">Acoustic transducer · 200 kHz</text>
+          <rect x="465" y="248" width="100" height="18" rx="2" class="transducer"/>
+          <path d="M480 244 Q515 216 550 244 M490 244 Q515 226 540 244" class="wave"/>
+          <g id="particle-layer" clip-path="url(#fluid-clip)"></g>
+        </svg>
+      </div>
+      <div class="control-row">
+        <dl class="parameters" aria-label="Model parameters">
+          <div class="param"><dt>Pressure, treated as peak</dt><dd>100 kPa</dd></div>
+          <div class="param"><dt>Water flow speed</dt><dd>1 mm/s</dd></div>
+          <div class="param"><dt>Frequency</dt><dd>200 kHz</dd></div>
+          <div class="param"><dt>Estimated residence</dt><dd>50 s</dd></div>
+        </dl>
+        <div class="buttons">
+          <button class="button primary" id="run-button" type="button">Run simulation</button>
+          <button class="button" id="reset-button" type="button">Reset</button>
+        </div>
+      </div>
+      <div class="progress-row" aria-live="polite">
+        <span id="time-label">Simulated time: 0.0 / 50 s</span>
+        <div class="progress-track" aria-hidden="true"><div class="progress-fill" id="progress-fill"></div></div>
+        <span class="results" id="current-result">In progress</span>
+      </div>
+    </section>
+
+    <section class="chart-section" aria-labelledby="chart-title">
+      <div class="chart-header">
+        <div>
+          <h2 id="chart-title">Predicted collector contact over time</h2>
+          <p class="chart-subtitle">Modeled proportion reaching either collection surface during the 50-second residence period.</p>
+        </div>
+      </div>
+      <svg id="capture-chart" viewBox="0 0 1000 360" role="img" aria-labelledby="chart-svg-title chart-svg-desc">
+        <title id="chart-svg-title">Predicted particle contact with collectors over time</title>
+        <desc id="chart-svg-desc">Line graph for PP, PS, PET, and flow-only baseline based on a simplified numerical model.</desc>
+      </svg>
+      <div class="legend" aria-label="Graph legend">
+        <span class="legend-item"><i class="swatch" style="--series:var(--blue)"></i>PP</span>
+        <span class="legend-item"><i class="swatch" style="--series:var(--amber)"></i>PS</span>
+        <span class="legend-item"><i class="swatch" style="--series:var(--teal)"></i>PET</span>
+        <span class="legend-item"><i class="swatch dashed" style="--series:var(--flow)"></i>Flow only</span>
+      </div>
+    </section>
+
+    <section class="method" id="method" aria-labelledby="method-title">
+      <h2 id="method-title">How to read this model</h2>
+      <div class="method-copy">
+        <p>The model applies a position-dependent standing-wave force to spherical particles and balances it against Stokes drag. Starting positions are distributed across the chamber height; particle movement is integrated over the estimated residence time.</p>
+        <p>The 25 µm mesh opening and upper/lower pressure-node pattern are assumptions. The mesh is smaller than the modeled 50 µm particles, so it may mechanically retain particles after contact. The model omits acoustic streaming and detailed three-dimensional flow and sound fields.</p>
+        <p>Results are theoretical estimates, not measured removal efficiency. The graph uses 20,001 modeled starting positions; the chamber animation shows representative particles.</p>
+        <div class="source-links" aria-label="Model sources">
+          <a href="https://docs.google.com/document/d/1U8HWevRKa5pA6PHQdbwEV8UyY-1zWp_DVAfcssGpRZY/edit?usp=sharing" target="_blank" rel="noreferrer">Project calculations</a>
+          <a href="https://doi.org/10.1039/C2LC21068A" target="_blank" rel="noreferrer">Bruus (2012)</a>
+          <a href="https://doi.org/10.1039/C5LC00866B" target="_blank" rel="noreferrer">Hahn et al. (2015)</a>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer>VIBr · Theoretical simulation presentation</footer>
+  <script>
+    (() => {
+      const TIMES = [0,5,10,15,20,25,30,35,40,45,50];
+      const DATA = {
+        PP: [1.36,2.50,4.13,6.43,9.65,14.07,19.97,27.44,36.25,45.92,55.79],
+        PS: [1.36,3.27,6.52,11.92,20.44,32.47,46.94,61.75,74.75,84.40,90.69],
+        PET: [1.36,5.63,16.14,36.91,63.06,83.30,93.35,97.42,99.01,99.62,99.86],
+        "Flow only": [1.36,1.36,1.36,1.36,1.36,1.36,1.36,1.36,1.36,1.36,1.36]
+      };
+      const SERIES = [
+        {name:"PP", color:"#2468c7", vmax:42.35e-6},
+        {name:"PS", color:"#c97918", vmax:64.25e-6},
+        {name:"PET", color:"#16877d", vmax:113.90e-6}
+      ];
+      const H = 3.7e-3, LAMBDA = 7.5e-3, K = 2 * Math.PI / LAMBDA;
+      const RADIUS = 25e-6, CHAMBER_LENGTH = 50e-3, FLOW = 1e-3;
+      const RESIDENCE = CHAMBER_LENGTH / FLOW, MODEL_DT = .05, SPEEDUP = 5;
+      const svgNS = "http://www.w3.org/2000/svg";
+      const chart = document.getElementById("capture-chart");
+      const layer = document.getElementById("particle-layer");
+      const runButton = document.getElementById("run-button");
+      const resetButton = document.getElementById("reset-button");
+      const timeLabel = document.getElementById("time-label");
+      const resultLabel = document.getElementById("current-result");
+      const progress = document.getElementById("progress-fill");
+      if (!chart || !layer || !runButton || !resetButton) return;
+
+      const NS = svgNS;
+      const make = (parent, tag, attrs={}) => {
+        const el = document.createElementNS(NS, tag);
+        for (const [key,value] of Object.entries(attrs)) el.setAttribute(key, value);
+        parent.appendChild(el);
+        return el;
+      };
+      const chartBox = {left:70, top:20, width:890, height:270};
+      const cx = t => chartBox.left + chartBox.width * t / RESIDENCE;
+      const cy = v => chartBox.top + chartBox.height * (1 - v/100);
+      const interp = (values, t) => {
+        if (t <= 0) return values[0];
+        if (t >= RESIDENCE) return values[values.length-1];
+        const i = Math.min(TIMES.length-2, Math.floor(t/5));
+        const f = (t - TIMES[i]) / (TIMES[i+1] - TIMES[i]);
+        return values[i] + f * (values[i+1] - values[i]);
+      };
+      const drawChart = t => {
+        chart.replaceChildren();
+        const title = make(chart,"title",{id:"chart-svg-title"}); title.textContent = "Predicted particle contact with collectors over time";
+        const desc = make(chart,"desc",{id:"chart-svg-desc"}); desc.textContent = "Theoretical predicted contact proportions for PP, PS, PET, and a flow-only baseline.";
+        for (let pct=0; pct<=100; pct+=20) {
+          make(chart,"line",{x1:chartBox.left,y1:cy(pct),x2:chartBox.left+chartBox.width,y2:cy(pct),class:"grid"});
+          const label=make(chart,"text",{x:chartBox.left-12,y:cy(pct)+4,"text-anchor":"end"}); label.textContent=String(pct);
+        }
+        for (let sec=0; sec<=50; sec+=10) {
+          make(chart,"line",{x1:cx(sec),y1:chartBox.top,x2:cx(sec),y2:chartBox.top+chartBox.height,class:"grid"});
+          const label=make(chart,"text",{x:cx(sec),y:chartBox.top+chartBox.height+22,"text-anchor":"middle"}); label.textContent=String(sec);
+        }
+        make(chart,"line",{x1:chartBox.left,y1:chartBox.top,x2:chartBox.left,y2:chartBox.top+chartBox.height,class:"axis"});
+        make(chart,"line",{x1:chartBox.left,y1:chartBox.top+chartBox.height,x2:chartBox.left+chartBox.width,y2:chartBox.top+chartBox.height,class:"axis"});
+        const xTitle=make(chart,"text",{x:chartBox.left+chartBox.width/2,y:chartBox.top+chartBox.height+48,"text-anchor":"middle",class:"axis-title"}); xTitle.textContent="Simulated residence time (s)";
+        const yTitle=make(chart,"text",{x:18,y:chartBox.top+chartBox.height/2,"text-anchor":"middle",class:"axis-title",transform:`rotate(-90 18 ${chartBox.top+chartBox.height/2})`}); yTitle.textContent="Particles reaching collector (%)";
+        const plotSeries=[...SERIES.map(s=>({name:s.name,color:s.color})),{name:"Flow only",color:"#9aa8b8",dash:"6 5"}];
+        for (const s of plotSeries) {
+          const vals=DATA[s.name];
+          const pts=[];
+          for (let st=0; st<=Math.min(t,RESIDENCE); st+=.5) pts.push(`${cx(st)},${cy(interp(vals,st))}`);
+          if (!pts.length || t%0.5!==0) pts.push(`${cx(Math.min(t,RESIDENCE))},${cy(interp(vals,Math.min(t,RESIDENCE)))}`);
+          const path=make(chart,"polyline",{points:pts.join(" "),class:"curve",stroke:s.color});
+          if (s.dash) path.setAttribute("stroke-dasharray",s.dash);
+          if (s.name!=="Flow only") make(chart,"circle",{cx:cx(Math.min(t,RESIDENCE)),cy:cy(interp(vals,Math.min(t,RESIDENCE))),r:5,fill:s.color,class:"cursor-dot"});
+        }
+        if (t < RESIDENCE) make(chart,"line",{x1:cx(t),y1:chartBox.top,x2:cx(t),y2:chartBox.top+chartBox.height,class:"cursor-line"});
+      };
+
+      const particles=[];
+      const plotY = y => 52 + (1 - y/H) * 158;
+      const countPerSeries=15;
+      SERIES.forEach((s,si)=>{
+        for(let i=0;i<countPerSeries;i++){
+          const initialY=(i+.5)*H/countPerSeries;
+          const initialX=124 + (i%5)*10 + Math.floor(i/5)*3;
+          const circle=make(layer,"circle",{cx:initialX,cy:plotY(initialY),r:5.2,fill:s.color,stroke:"#fff","stroke-width":1.5});
+          particles.push({series:s,initialY,y:initialY,initialX,circle,captured:initialY<=RADIUS||initialY>=H-RADIUS});
+        }
+      });
+      const resetParticles=()=>particles.forEach(p=>{p.y=p.initialY;p.captured=p.initialY<=RADIUS||p.initialY>=H-RADIUS;p.circle.setAttribute("cx",p.initialX);p.circle.setAttribute("cy",plotY(p.y));});
+      let simulated=0, playing=false, lastFrame=0, accumulator=0, raf=0;
+      const updateLabels=()=>{
+        timeLabel.textContent=`Simulated time: ${simulated.toFixed(1)} / 50 s`;
+        progress.style.width=`${100*simulated/RESIDENCE}%`;
+        if(simulated>=RESIDENCE){resultLabel.textContent="Model complete";runButton.textContent="Run again";}
+        else {resultLabel.textContent="In progress";runButton.textContent=playing?"Pause simulation":"Run simulation";}
+      };
+      const stepModel=()=>{
+        for(const p of particles){
+          if(!p.captured){
+            p.y += -p.series.vmax*Math.sin(2*K*p.y)*MODEL_DT;
+            if(p.y<=RADIUS){p.y=RADIUS;p.captured=true;}
+            if(p.y>=H-RADIUS){p.y=H-RADIUS;p.captured=true;}
+          }
+        }
+        simulated=Math.min(RESIDENCE,simulated+MODEL_DT);
+      };
+      const drawParticles=()=>{
+        for(const p of particles){
+          const x=Math.min(924,p.initialX+(simulated/RESIDENCE)*800);
+          p.circle.setAttribute("cx",x);
+          p.circle.setAttribute("cy",plotY(p.y));
+          p.circle.setAttribute("opacity",x>=920?.45:1);
+        }
+      };
+      const frame=now=>{
+        if(!playing)return;
+        if(!lastFrame)lastFrame=now;
+        const elapsed=Math.min(.2,(now-lastFrame)/1000);lastFrame=now;
+        accumulator += elapsed*SPEEDUP;
+        while(accumulator>=MODEL_DT && simulated<RESIDENCE){stepModel();accumulator-=MODEL_DT;}
+        drawParticles();drawChart(simulated);updateLabels();
+        if(simulated>=RESIDENCE){playing=false;lastFrame=0;updateLabels();return;}
+        raf=requestAnimationFrame(frame);
+      };
+      runButton.addEventListener("click",()=>{
+        if(simulated>=RESIDENCE){simulated=0;accumulator=0;resetParticles();}
+        playing=!playing;lastFrame=0;updateLabels();
+        if(playing)raf=requestAnimationFrame(frame);else cancelAnimationFrame(raf);
+      });
+      resetButton.addEventListener("click",()=>{
+        playing=false;cancelAnimationFrame(raf);simulated=0;accumulator=0;lastFrame=0;resetParticles();drawChart(0);updateLabels();
+      });
+      drawChart(0);updateLabels();
+    })();
+  </script>
+</body>
+</html>
+
+
